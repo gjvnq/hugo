@@ -68,3 +68,48 @@ func TestParse(t *testing.T) {
 			qt.CmpEquals(hqt.DeepAllowUnexported(&url.URL{}, url.Userinfo{})), test.expect)
 	}
 }
+
+func TestJoin(t *testing.T) {
+	t.Parallel()
+	c := qt.New(t)
+
+	for _, test := range []struct {
+		input  []string
+		expect string
+	}{
+		{
+			[]string{"http://www.example.com"},
+			"http://www.example.com/",
+		},
+		{
+			[]string{"http://www.example.com", "/a"},
+			"http://www.example.com/a",
+		},
+		{
+			[]string{"http://www.example.com/", "//ç/c/d", "../.."},
+			"http://www.example.com/ç",
+		},
+		{
+			[]string{"http://www.example.com/", "//ç/c/d", "../../"},
+			"http://www.example.com/ç/",
+		},
+		{
+			[]string{"http://www.example.com", "/a?b=1"},
+			"http://www.example.com/a?b=1",
+		},
+		{
+			[]string{"http://www.example.com", "/a;b=1", "/f;c"},
+			"http://www.example.com/a;b=1/f;c",
+		},
+		{
+			[]string{"http://www.example.com", "/ã"},
+			"http://www.example.com/ã",
+		},
+	} {
+
+		result, err := ns.Join(test.input[0], test.input[1:])
+
+		c.Assert(err, qt.IsNil)
+		c.Assert(result, qt.CmpEquals(), test.expect)
+	}
+}

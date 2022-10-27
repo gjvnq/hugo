@@ -66,6 +66,11 @@ func init() {
 			},
 		)
 
+		ns.AddMethodMapping(ctx.Join,
+			[]string{"join"},
+			[][2]string{},
+		)
+
 		return ns
 	}
 

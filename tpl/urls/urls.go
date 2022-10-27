@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/url"
+	"strings"
 
 	"github.com/gohugoio/hugo/common/urls"
 	"github.com/gohugoio/hugo/deps"
@@ -184,4 +185,51 @@ func (ns *Namespace) AbsLangURL(s any) (template.HTML, error) {
 	}
 
 	return template.HTML(ns.deps.PathSpec.AbsURL(ss, !ns.multihost)), nil
+}
+
+// Join joins any number of URL path elements into a single URL path, adding a
+// separating slash if necessary.
+// Note that this function does not escape special characters like `?`, `;` and
+// non-ascii characters
+func (ns *Namespace) Join(base any, elements ...any) (string, error) {
+	var pathElements []string
+	baseStr, err := cast.ToStringE(base)
+	if err != nil {
+		return "", err
+	}
+	for _, elem := range elements {
+		switch v := elem.(type) {
+		case []string:
+			for _, e := range v {
+				pathElements = append(pathElements, e)
+			}
+		case []any:
+			for _, e := range v {
+				elemStr, err := cast.ToStringE(e)
+				if err != nil {
+					return "", err
+				}
+				pathElements = append(pathElements, elemStr)
+			}
+		default:
+			elemStr, err := cast.ToStringE(elem)
+			if err != nil {
+				return "", err
+			}
+			pathElements = append(pathElements, elemStr)
+		}
+	}
+	fullPath, err := url.JoinPath("", pathElements...)
+	if err != nil {
+		return "", err
+	}
+	fullPath, err = url.PathUnescape(fullPath)
+	if err != nil {
+		return "", err
+	}
+	if !strings.HasSuffix(baseStr, "/") {
+		baseStr += "/"
+	}
+	fullPath = strings.TrimLeft(fullPath, "/")
+	return baseStr + fullPath, nil
 }
